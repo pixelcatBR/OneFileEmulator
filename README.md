@@ -6,7 +6,7 @@
   <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/1f5c2.svg" width="150" alt="OneFile Emulator" />
 </p>
 
-este é um projeto de um emulador de múltiplos consoles com apenas um único arquivo "onefile.html".
+este é um projeto de um emulador universal de múltiplos consoles com apenas um único arquivo "onefile.html".
 
 
 ## Licença
