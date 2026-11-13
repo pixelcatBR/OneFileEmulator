@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneFile Emulator — Emulador Web</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+  }
+
+  body {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #eaeaea;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  header h1 {
+    font-size: 2.2rem;
+    background: linear-gradient(90deg, #4facfe, #00f2fe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    color: #8892b0;
+    font-size: 0.95rem;
+  }
+
+  /* ---------- Tela de Upload ---------- */
+  #upload-screen {
+    width: 100%;
+    max-width: 640px;
+    background: #1e2a47;
+    border-radius: 16px;
+    padding: 40px 30px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    border: 1px solid #2d3a5c;
+  }
+
+  .drop-zone {
+    border: 2px dashed #4facfe;
+    border-radius: 12px;
+    padding: 50px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(79, 172, 254, 0.05);
+  }
+
+  .drop-zone:hover,
+  .drop-zone.dragover {
+    background: rgba(79, 172, 254, 0.15);
+    border-color: #00f2fe;
+    transform: scale(1.01);
+  }
+
+  .drop-zone svg {
+    width: 60px;
+    height: 60px;
+    stroke: #4facfe;
+    margin-bottom: 15px;
+  }
+
+  .drop-zone h3 {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+
+  .drop-zone span {
+    color: #8892b0;
+    font-size: 0.85rem;
+  }
+
+  .file-info {
+    margin-top: 20px;
+    padding: 14px 18px;
+    background: #0f1a2e;
+    border-radius: 10px;
+    border-left: 4px solid #00f2fe;
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .file-info.show { display: flex; }
+
+  .file-info .name {
+    font-weight: 600;
+    word-break: break-all;
+    font-size: 0.9rem;
+  }
+
+  .file-info .platform {
+    background: #4facfe;
+    color: #0f1a2e;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .platform-select {
+    margin-top: 20px;
+  }
+
+  .platform-select label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    color: #8892b0;
+  }
+
+  .platform-select select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #2d3a5c;
+    background: #0f1a2e;
+    color: #eaeaea;
+    font-size: 0.95rem;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .platform-select select:focus {
+    border-color: #4facfe;
+  }
+
+  .btn-start {
+    width: 100%;
+    margin-top: 25px;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #4facfe, #00f2fe);
+    color: #0f1a2e;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.3s, transform 0.2s;
+  }
+
+  .btn-start:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+  }
+
+  .btn-start:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* ---------- Tela do Emulador ---------- */
+  #emulator-screen {
+    display: none;
+    width: 100%;
+    max-width: 1000px;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  #emulator-screen.show { display: flex; }
+
+  .emu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    background: #1e2a47;
+    border-radius: 10px;
+    border: 1px solid #2d3a5c;
+  }
+
+  .emu-header .title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .btn-back {
+    padding: 8px 16px;
+    border: 1px solid #4facfe;
+    background: transparent;
+    color: #4facfe;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .btn-back:hover {
+    background: #4facfe;
+    color: #0f1a2e;
+  }
+
+  #game-container {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #2d3a5c;
+  }
+
+  #game-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .footer-note {
+    margin-top: 25px;
+    color: #4a5578;
+    font-size: 0.75rem;
+    text-align: center;
+    max-width: 640px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🗂️ OneFile Emulator</h1>
+  <p>Um arquivo. Um jogo. Emule direto no navegador.</p>
+</header>
+
+<!-- ================= TELA DE UPLOAD ================= -->
+<div id="upload-screen">
+  <div class="drop-zone" id="drop-zone">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 7.5 7.5 12M12 7.5v9" />
+    </svg>
+    <h3>Clique ou arraste sua ROM aqui</h3>
+    <span>Formatos: .nes, .sfc, .smc, .gba, .gb, .gbc, .n64, .z64, .iso, etc.</span>
+    <input type="file" id="rom-input" hidden accept=".nes,.sfc,.smc,.gba,.gb,.gbc,.n64,.z64,.v64,.iso,.bin,.cue,.md,.gen,.sms,.gg,.pce,.ngc,.cso,.chd,.zip">
+  </div>
+
+  <div class="file-info" id="file-info">
+    <span class="name" id="file-name">—</span>
+    <span class="platform" id="detected-platform">Detectando...</span>
+  </div>
+
+  <div class="platform-select">
+    <label for="platform-select">Plataforma (pode ajustar manualmente):</label>
+    <select id="platform-select">
+      <option value="">-- Selecione --</option>
+      <option value="nes">Nintendo Entertainment System (.nes)</option>
+      <option value="snes">Super Nintendo (.sfc / .smc)</option>
+      <option value="gba">Game Boy Advance (.gba)</option>
+      <option value="gb">Game Boy (.gb)</option>
+      <option value="gbc">Game Boy Color (.gbc)</option>
+      <option value="n64">Nintendo 64 (.n64 / .z64)</option>
+      <option value="segaMD">Sega Mega Drive / Genesis (.md / .gen)</option>
+      <option value="segaMS">Sega Master System (.sms)</option>
+      <option value="segaGG">Sega Game Gear (.gg)</option>
+      <option value="segaSaturn">Sega Saturn (.iso / .chd)</option>
+      <option value="psx">PlayStation 1 (.iso / .bin / .cue)</option>
+      <option value="psp">PlayStation Portable (.iso / .cso)</option>
+      <option value="pce">PC Engine / TurboGrafx-16 (.pce)</option>
+      <option value="ngp">Neo Geo Pocket (.ngp)</option>
+      <option value="atari2600">Atari 2600 (.a26)</option>
+      <option value="atari7800">Atari 7800 (.a78)</option>
+      <option value="lynx">Atari Lynx (.lnx)</option>
+      <option value="ws">WonderSwan (.ws)</option>
+      <option value="vb">Virtual Boy (.vb)</option>
+      <option value="arcade">Arcade (MAME/FBNeo)</option>
+    </select>
+  </div>
+
+  <button class="btn-start" id="btn-start" disabled>▶ Iniciar Emulação</button>
+</div>
+
+<!-- ================= TELA DO EMULADOR ================= -->
+<div id="emulator-screen">
+  <div class="emu-header">
+    <span class="title" id="emu-title">—</span>
+    <button class="btn-back" id="btn-back">↩ Trocar ROM</button>
+  </div>
+  <div id="game-container"></div>
+</div>
+
+<p class="footer-note">
+  <strong>OneFile Emulator</strong> — Este emulador roda localmente no seu navegador via <strong>EmulatorJS</strong>.
+  Nenhum arquivo é enviado a servidores.
+</p>
+
+<script>
+/* ==========================================================
+   1. MAPEAMENTO DE EXTENSÕES → PLATAFORMA (core do EmulatorJS)
+   ========================================================== */
+const EXTENSION_MAP = {
+  'nes': 'nes',
+  'sfc': 'snes', 'smc': 'snes', 'fig': 'snes', 'swc': 'snes',
+  'gba': 'gba',
+  'gb':  'gb',
+  'gbc': 'gbc',
+  'n64': 'n64', 'z64': 'n64', 'v64': 'n64',
+  'md':  'segaMD', 'gen': 'segaMD', 'smd': 'segaMD',
+  'sms': 'segaMS',
+  'gg':  'segaGG',
+  'pce': 'pce',
+  'ngp': 'ngp', 'ngc': 'ngp',
+  'a26': 'atari2600',
+  'a78': 'atari7800',
+  'lnx': 'lynx',
+  'ws':  'ws', 'wsc': 'ws',
+  'vb':  'vb',
+  'iso': 'psx',
+  'bin': 'psx',
+  'cue': 'psx',
+  'cso': 'psp',
+  'chd': 'psx',
+  'zip': null,
+  '7z':  null,
+  'rar': null
+};
+
+const PLATFORM_LABELS = {
+  nes: 'NES', snes: 'SNES', gba: 'GBA', gb: 'GB', gbc: 'GBC',
+  n64: 'Nintendo 64', segaMD: 'Mega Drive', segaMS: 'Master System',
+  segaGG: 'Game Gear', segaSaturn: 'Sega Saturn', psx: 'PlayStation',
+  psp: 'PSP', pce: 'PC Engine', ngp: 'Neo Geo Pocket',
+  atari2600: 'Atari 2600', atari7800: 'Atari 7800', lynx: 'Atari Lynx',
+  ws: 'WonderSwan', vb: 'Virtual Boy', arcade: 'Arcade'
+};
+
+/* ==========================================================
+   2. ELEMENTOS DA UI
+   ========================================================== */
+const dropZone      = document.getElementById('drop-zone');
+const fileInput     = document.getElementById('rom-input');
+const fileInfo      = document.getElementById('file-info');
+const fileNameEl    = document.getElementById('file-name');
+const platformBadge = document.getElementById('detected-platform');
+const platformSelect= document.getElementById('platform-select');
+const btnStart      = document.getElementById('btn-start');
+const uploadScreen  = document.getElementById('upload-screen');
+const emuScreen     = document.getElementById('emulator-screen');
+const emuTitle      = document.getElementById('emu-title');
+const gameContainer = document.getElementById('game-container');
+const btnBack       = document.getElementById('btn-back');
+
+let selectedFile = null;
+let currentObjectURL = null;
+
+/* ==========================================================
+   3. DETECÇÃO DE PLATAFORMA PELA EXTENSÃO
+   ========================================================== */
+function detectPlatform(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  return EXTENSION_MAP[ext] || null;
+}
+
+/* ==========================================================
+   4. HANDLERS DE UPLOAD
+   ========================================================== */
+dropZone.addEventListener('click', () => fileInput.click());
+
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  selectedFile = file;
+
+  const detected = detectPlatform(file.name);
+
+  fileNameEl.textContent = file.name;
+  fileInfo.classList.add('show');
+
+  if (detected) {
+    platformBadge.textContent = PLATFORM_LABELS[detected] || detected;
+    platformSelect.value = detected;
+  } else {
+    platformBadge.textContent = 'Selecione manualmente';
+    platformSelect.value = '';
+  }
+
+  updateStartButton();
+}
+
+platformSelect.addEventListener('change', updateStartButton);
+
+function updateStartButton() {
+  btnStart.disabled = !(selectedFile && platformSelect.value);
+}
+
+/* ==========================================================
+   5. INICIALIZAÇÃO DO EMULATORJS
+   ========================================================== */
+btnStart.addEventListener('click', () => {
+  if (!selectedFile || !platformSelect.value) return;
+
+  const platform = platformSelect.value;
+
+  if (currentObjectURL) URL.revokeObjectURL(currentObjectURL);
+  currentObjectURL = URL.createObjectURL(selectedFile);
+
+  uploadScreen.style.display = 'none';
+  emuScreen.classList.add('show');
+  emuTitle.textContent = selectedFile.name + ' — ' + (PLATFORM_LABELS[platform] || platform);
+
+  gameContainer.innerHTML = '';
+
+  window.EJS_player          = '#game-container';
+  window.EJS_core            = platform;
+  window.EJS_gameUrl         = currentObjectURL;
+  window.EJS_gameName        = selectedFile.name;
+  window.EJS_pathtodata      = 'https://cdn.emulatorjs.org/stable/data/';
+  window.EJS_startOnLoaded   = true;
+  window.EJS_language        = 'pt-BR';
+
+  window.EJS_backgroundColor = '#000000';
+  window.EJS_color           = '#4facfe';
+  window.EJS_defaultOptions = {
+    'save-state-location': 'browser'
+  };
+
+  const script = document.createElement('script');
+  script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+  script.onerror = () => {
+    gameContainer.innerHTML =
+      '<p style="color:#ff6b6b;text-align:center;padding:40px;">' +
+      'Erro ao carregar o EmulatorJS. Verifique sua conexão.</p>';
+  };
+  document.body.appendChild(script);
+});
+
+/* ==========================================================
+   6. BOTÃO VOLTAR / TROCAR ROM
+   ========================================================== */
+btnBack.addEventListener('click', () => {
+  document.querySelectorAll('script[src*="emulatorjs"]').forEach(s => s.remove());
+
+  gameContainer.innerHTML = '';
+  if (currentObjectURL) {
+    URL.revokeObjectURL(currentObjectURL);
+    currentObjectURL = null;
+  }
+
+  selectedFile = null;
+  fileInput.value = '';
+  fileInfo.classList.remove('show');
+  platformSelect.value = '';
+  btnStart.disabled = true;
+
+  delete window.EJS_player;
+  delete window.EJS_core;
+  delete window.EJS_gameUrl;
+  delete window.EJS_gameName;
+
+  emuScreen.classList.remove('show');
+  uploadScreen.style.display = 'block';
+});
+</script>
+
+</body>
+</html>
